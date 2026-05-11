@@ -1,0 +1,477 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #FF7A00;
+  --color-primary-container: #CC5F00;
+  --color-on-primary: #0E0E10;
+  --color-secondary: #6FFB85;
+  --color-on-secondary: #004818;
+  --color-tertiary: #FAB0FF;
+  --color-error: #FF4D4D;
+  --color-on-surface: #FFFFFF;
+  --color-on-surface-variant: #9E9E9E;
+  --color-outline: #2A2A2D;
+  --color-outline-variant: #3A3A3D;
+  --color-background: #0A0A0A;
+  --color-surface: #161618;
+  --color-surface-container-low: #121214;
+  --color-surface-container: #1C1C1F;
+  --color-surface-container-high: #232326;
+  --color-surface-container-highest: #2A2A2D;
+  --color-header-bg: rgba(10, 10, 10, 0.92);
+  --color-nav-bg: rgba(22, 22, 24, 0.82);
+  
+  --font-headline: "Plus Jakarta Sans", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-label: "Inter", sans-serif;
+}
+
+/* Light Theme Override */
+:root[data-theme="light"] {
+  --color-background: #F5F5F7;
+  --color-surface: #FFFFFF;
+  --color-surface-container-low: #F9F9FB;
+  --color-surface-container: #FFFFFF;
+  --color-surface-container-high: #F5F5F7;
+  --color-surface-container-highest: #EBEBED;
+  --color-on-surface: #1A1A1A;
+  --color-on-surface-variant: #6B6B6B;
+  --color-outline: #D5D5D8;
+  --color-outline-variant: #E5E5E8;
+  --color-primary: #E06800;
+  --color-primary-container: #FF7A00;
+  --color-on-primary: #FFFFFF;
+  --color-secondary: #00A844;
+  --color-on-secondary: #FFFFFF;
+  --color-tertiary: #9B59B6;
+  --color-error: #E53935;
+  --color-header-bg: rgba(255, 255, 255, 0.88);
+  --color-nav-bg: rgba(255, 255, 255, 0.82);
+}
+
+@layer base {
+  body {
+    @apply bg-background text-on-surface font-body selection:bg-primary selection:text-black;
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior-y: contain;
+  }
+  
+  /* Light mode overrides for common patterns */
+  :root[data-theme="light"] body {
+    color: #1A1A1A;
+  }
+  
+  /* Text white → dark */
+  :root[data-theme="light"] .text-white {
+    color: #1A1A1A;
+  }
+  :root[data-theme="light"] .text-white\/90,
+  :root[data-theme="light"] .text-white\/80 {
+    color: rgba(26, 26, 26, 0.85);
+  }
+  :root[data-theme="light"] .text-white\/70,
+  :root[data-theme="light"] .text-white\/60 {
+    color: rgba(26, 26, 26, 0.7);
+  }
+  :root[data-theme="light"] .text-white\/50,
+  :root[data-theme="light"] .text-white\/40 {
+    color: rgba(26, 26, 26, 0.55);
+  }
+  :root[data-theme="light"] .text-white\/35,
+  :root[data-theme="light"] .text-white\/30 {
+    color: rgba(26, 26, 26, 0.45);
+  }
+  :root[data-theme="light"] .text-white\/25,
+  :root[data-theme="light"] .text-white\/20,
+  :root[data-theme="light"] .text-white\/15 {
+    color: rgba(26, 26, 26, 0.35);
+  }
+  
+  /* Bracket-syntax text opacities (e.g. text-white/[0.04]) */
+  :root[data-theme="light"] [class*="text-white\\/\\["] {
+    color: rgba(26, 26, 26, 0.5);
+  }
+  
+  /* Background white → subtle dark tint */
+  :root[data-theme="light"] .bg-white\/5,
+  :root[data-theme="light"] .bg-white\/10 {
+    background-color: rgba(0, 0, 0, 0.06);
+  }
+  :root[data-theme="light"] .bg-white\/20,
+  :root[data-theme="light"] .bg-white\/3 {
+    background-color: rgba(0, 0, 0, 0.08);
+  }
+  
+  /* Bracket-syntax bg opacities */
+  :root[data-theme="light"] [class*="bg-white\\/\\["] {
+    background-color: rgba(0, 0, 0, 0.06);
+  }
+  
+  /* Background black overlays → lighter */
+  :root[data-theme="light"] .bg-black\/20,
+  :root[data-theme="light"] .bg-black\/30 {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+  :root[data-theme="light"] .bg-black\/40,
+  :root[data-theme="light"] .bg-black\/50,
+  :root[data-theme="light"] .bg-black\/60 {
+    background-color: rgba(0, 0, 0, 0.06);
+  }
+  
+  /* Border white → subtle dark */
+  :root[data-theme="light"] .border-white\/5,
+  :root[data-theme="light"] .border-white\/10,
+  :root[data-theme="light"] .border-white\/20 {
+    border-color: rgba(0, 0, 0, 0.08);
+  }
+  :root[data-theme="light"] [class*="border-white\\/\\["] {
+    border-color: rgba(0, 0, 0, 0.08);
+  }
+  
+  /* Ring colors */
+  :root[data-theme="light"] .ring-white\/5,
+  :root[data-theme="light"] .ring-white\/10,
+  :root[data-theme="light"] [class*="ring-white\\/\\["] {
+    --tw-ring-color: rgba(0, 0, 0, 0.06);
+  }
+  
+  /* Dividers */
+  :root[data-theme="light"] .divide-white\/5 > :not([hidden]) ~ :not([hidden]) {
+    border-color: rgba(0, 0, 0, 0.06);
+  }
+  
+  /* Shadows — give cards subtle elevation in light mode */
+  :root[data-theme="light"] .shadow-2xl,
+  :root[data-theme="light"] .shadow-xl,
+  :root[data-theme="light"] .shadow-lg {
+    --tw-shadow-color: rgba(0, 0, 0, 0.06);
+  }
+  
+  /* Cards get subtle shadow in light mode for the elevated look */
+  :root[data-theme="light"] .rounded-2xl,
+  :root[data-theme="light"] .rounded-\[2rem\] {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+  }
+  
+  /* Hardcoded dark backgrounds used for ring tracks & progress bars */
+  :root[data-theme="light"] .bg-\[\#252528\] {
+    background-color: #EBEBED;
+  }
+  
+  /* Hardcoded dark button/card backgrounds in Workout & other pages */
+  :root[data-theme="light"] .bg-\[\#111112\] {
+    background-color: #FFFFFF;
+    border-color: #D5D5D8;
+  }
+  
+  /* Gateway gradient cards — override to light */
+  :root[data-theme="light"] .from-\[\#1c223a\] {
+    --tw-gradient-from: #FFFFFF;
+  }
+  :root[data-theme="light"] .to-black {
+    --tw-gradient-to: #F5F5F7;
+  }
+  
+  /* Input backgrounds in workout editor */
+  :root[data-theme="light"] input,
+  :root[data-theme="light"] select,
+  :root[data-theme="light"] textarea {
+    color: #1A1A1A;
+  }
+  
+  /* Select elements with forced dark bg */
+  :root[data-theme="light"] select.bg-\[\#111112\] {
+    background-color: #FFFFFF;
+    color: #1A1A1A;
+    border-color: #D5D5D8;
+  }
+  :root[data-theme="light"] select option {
+    background-color: #FFFFFF;
+    color: #1A1A1A;
+  }
+  
+  /* Placeholder text in light mode */
+  :root[data-theme="light"] input::placeholder,
+  :root[data-theme="light"] textarea::placeholder {
+    color: rgba(26, 26, 26, 0.35) !important;
+  }
+  
+  /* Gradient overlays in light mode — less opaque */
+  :root[data-theme="light"] .bg-gradient-to-t {
+    --tw-gradient-from: rgba(255, 255, 255, 0.9);
+  }
+  
+  /* Gradient buttons — keep dark-on-primary readable */
+  :root[data-theme="light"] .bg-gradient-to-r.from-primary,
+  :root[data-theme="light"] .bg-gradient-to-br.from-primary,
+  :root[data-theme="light"] .bg-gradient-to-r.from-primary.text-black,
+  :root[data-theme="light"] .bg-gradient-to-br.from-primary.text-black,
+  :root[data-theme="light"] .bg-primary.text-black {
+    color: #FFFFFF !important;
+  }
+  
+  /* Ensure solid white buttons from dark mode flip to solid dark in light mode for contrast */
+  :root[data-theme="light"] button.bg-white {
+    background-color: #1A1A1A !important;
+    color: #FFFFFF !important;
+  }
+  
+  /* Ensure surface-container buttons have a border so they don't vanish on white cards */
+  :root[data-theme="light"] button.bg-\[var\(--color-surface-container\)\] {
+    border: 1px solid #E5E5E8;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+  
+  /* Handle drop-shadow glow effects in light mode */
+  :root[data-theme="light"] .drop-shadow-\[0_0_20px_rgba\(255\,122\,0\,0\.3\)\] {
+    filter: none;
+  }
+  :root[data-theme="light"] .shadow-\[0_0_40px_rgba\(255\,122\,0\,0\.15\)\] {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  }
+  :root[data-theme="light"] .shadow-\[0_0_10px_rgba\(255\,122\,0\,0\.4\)\] {
+    box-shadow: none;
+  }
+  
+  /* Scrollbar in light mode */
+  :root[data-theme="light"] ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.08);
+  }
+  :root[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.15);
+  }
+
+  /* Material Symbols Configuration */
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+  
+  /* Hide scrollbar utility */
+  .hide-scrollbar::-webkit-scrollbar,
+  [scrollbar-width\:none]::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Smooth page transitions */
+  main {
+    animation: fadeSlideIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  
+  @keyframes fadeSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Staggered card entrance */
+  @keyframes cardEntrance {
+    from {
+      opacity: 0;
+      transform: translateY(20px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  
+  .animate-card-enter {
+    animation: cardEntrance 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* Shimmer effect for skeleton loaders */
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+
+  /* Ring animation */
+  @keyframes ringDraw {
+    from { stroke-dashoffset: 691; }
+  }
+  
+  .animate-ring-draw {
+    animation: ringDraw 1.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* Subtle pulse — use sparingly */
+  .animate-glow-pulse {
+    /* disabled — use opacity transitions instead */
+  }
+  .animate-float {
+    /* disabled — static elements feel more premium */
+  }
+
+  /* Success checkmark animation */
+  @keyframes scaleIn {
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* Number count-up effect */
+  @keyframes countUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .animate-count-up {
+    animation: countUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* Slide in from bottom (for modals/sheets) */
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* Animate-in utilities (tw doesn't have these built in) */
+  .animate-in {
+    animation-fill-mode: both;
+    animation-duration: 0.3s;
+  }
+  
+  .fade-in {
+    animation-name: fadeIn;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  .slide-in-from-bottom-8 {
+    --slide-y: 2rem;
+    animation-name: slideFromBottom;
+  }
+  
+  .slide-in-from-bottom-2 {
+    --slide-y: 0.5rem;
+    animation-name: slideFromBottom;
+  }
+  
+  .slide-in-from-right-4 {
+    --slide-x: 1rem;
+    animation-name: slideFromRight;
+  }
+  
+  @keyframes slideFromBottom {
+    from { transform: translateY(var(--slide-y, 1rem)); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  
+  @keyframes slideFromRight {
+    from { transform: translateX(var(--slide-x, 1rem)); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  
+  .zoom-in-95 {
+    animation-name: zoomIn95;
+  }
+  
+  @keyframes zoomIn95 {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  
+  .duration-300 { animation-duration: 0.3s; }
+  .duration-500 { animation-duration: 0.5s; }
+  .duration-700 { animation-duration: 0.7s; }
+  
+  /* Muscle Heatmap Pulse */
+  @keyframes heatmapPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  .animate-heatmap-pulse {
+    animation: heatmapPulse 2.5s ease-in-out infinite;
+  }
+
+  /* Staggered exercise list entrance */
+  @keyframes exerciseSlideIn {
+    from {
+      opacity: 0;
+      transform: translateX(-12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .animate-exercise-enter {
+    animation: exerciseSlideIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* Day switch card transition */
+  @keyframes heroCardIn {
+    from {
+      opacity: 0;
+      transform: scale(0.97) translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  .animate-hero-card {
+    animation: heroCardIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 100px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  /* Pull to refresh visual */
+  .pull-indicator {
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Touch device optimizations */
+  @media (hover: none) {
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+  }
+
+  /* iOS safe area support */
+  @supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .pb-safe {
+      padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+    }
+  }
+}

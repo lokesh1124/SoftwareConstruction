@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">MyFitAI</string>
+    <string name="title_activity_main">MyFitAI</string>
+    <string name="package_name">com.myfitai.app</string>
+    <string name="custom_url_scheme">com.myfitai.app</string>
+</resources>
