@@ -20,6 +20,8 @@ import { FitnessProvider } from './context/FitnessContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { GamificationProvider } from './context/GamificationContext';
 import { OnboardingProvider, useOnboarding } from './context/OnboardingContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import AuthPage from './pages/AuthPage';
 import ActivityLogger from './components/ActivityLogger';
 import NotificationsPanel from './components/NotificationsPanel';
 import { SkeletonDashboard } from './components/SkeletonLoaders';
@@ -36,12 +38,18 @@ function AppContent() {
   const [isLoading, setIsLoading] = useState(true);
   const { theme, toggleTheme } = useTheme();
   const { isOnboarded } = useOnboarding();
+  const { user } = useAuth();
 
   // Simulate initial load for premium feel
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 800);
     return () => clearTimeout(timer);
   }, []);
+
+  // Show authentication page if not logged in
+  if (!user) {
+    return <AuthPage />;
+  }
 
   // Show onboarding if not completed
   if (!isOnboarded) {
@@ -136,22 +144,38 @@ function AppContent() {
   );
 }
 
-function App() {
+function UserSpecificProviders({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  
+  if (loading) return null;
+
   return (
-    <ThemeProvider>
+    <div key={user?.uid || 'guest'} className="contents">
       <ToastProvider>
         <FitnessProvider>
           <GamificationProvider>
             <PreferencesProvider>
               <WorkoutBuilderProvider>
                 <OnboardingProvider>
-                  <AppContent />
+                  {children}
                 </OnboardingProvider>
               </WorkoutBuilderProvider>
             </PreferencesProvider>
           </GamificationProvider>
         </FitnessProvider>
       </ToastProvider>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <UserSpecificProviders>
+          <AppContent />
+        </UserSpecificProviders>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

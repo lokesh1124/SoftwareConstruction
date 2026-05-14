@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import { syncToCloud } from '../services/cloudSync';
+import { storage } from '../utils/storage';
 
 export interface Achievement {
   id: string;
@@ -76,9 +79,10 @@ const DEFAULT_MISSIONS: Mission[] = [
 const GamificationContext = createContext<GamificationContextType | undefined>(undefined);
 
 export function GamificationProvider({ children }: { children: React.ReactNode }) {
+  const { cloudData } = useAuth();
   const [state, setState] = useState<GamificationState>(() => {
-    const saved = localStorage.getItem('kinetic_gamification');
-    if (saved) return JSON.parse(saved);
+    const saved = storage.get<GamificationState>('kinetic_gamification');
+    if (saved) return saved;
     return {
       xp: 2250,
       level: 5,
@@ -90,8 +94,16 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
     };
   });
 
+  // Sync from cloud
   useEffect(() => {
-    localStorage.setItem('kinetic_gamification', JSON.stringify(state));
+    if (cloudData && cloudData.gamification) {
+      setState(cloudData.gamification);
+    }
+  }, [cloudData]);
+
+  useEffect(() => {
+    storage.set('kinetic_gamification', state);
+    syncToCloud('gamification', state);
   }, [state]);
 
   const addXP = (amount: number) => {

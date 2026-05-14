@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import { syncToCloud } from '../services/cloudSync';
+import { storage } from '../utils/storage';
 
 // Define types
 export type FitnessGoal = 'Hypertrophy Phase' | 'Fat Loss' | 'Endurance' | 'Maintenance';
@@ -41,7 +44,7 @@ interface FitnessContextType {
 
 // Default initial state
 const defaultProfile: UserProfile = {
-  name: 'Alex',
+  name: 'Athlete',
   age: 28,
   gender: 'Male',
   height: 72, 
@@ -57,27 +60,40 @@ const defaultProfile: UserProfile = {
 const FitnessContext = createContext<FitnessContextType | undefined>(undefined);
 
 export function FitnessProvider({ children }: { children: React.ReactNode }) {
-  // Try to load from localStorage
+  const { cloudData } = useAuth();
+
+  // Try to load from storage
   const loadInitialProfile = () => {
-    const saved = localStorage.getItem('kinetic_profile');
-    return saved ? JSON.parse(saved) : defaultProfile;
+    const saved = storage.get<UserProfile>('kinetic_profile');
+    return saved || defaultProfile;
   };
 
   const loadInitialActivities = () => {
-    const saved = localStorage.getItem('kinetic_activities');
-    return saved ? JSON.parse(saved) : [];
+    const saved = storage.get<Activity[]>('kinetic_activities');
+    return saved || [];
   };
 
   const [profile, setProfile] = useState<UserProfile>(loadInitialProfile);
   const [activities, setActivities] = useState<Activity[]>(loadInitialActivities);
 
-  // Sync with localStorage
+  // Sync from cloud on load
   useEffect(() => {
-    localStorage.setItem('kinetic_profile', JSON.stringify(profile));
+    if (cloudData && cloudData.fitness) {
+      if (cloudData.fitness.profile) setProfile(cloudData.fitness.profile);
+      if (cloudData.fitness.activities) setActivities(cloudData.fitness.activities);
+    }
+  }, [cloudData]);
+
+  // Sync with storage and cloud
+  useEffect(() => {
+    storage.set('kinetic_profile', profile);
+    // Optional: avoid syncing initial default state if not modified, but for now we sync
+    syncToCloud('fitness', { profile, activities });
   }, [profile]);
 
   useEffect(() => {
-    localStorage.setItem('kinetic_activities', JSON.stringify(activities));
+    storage.set('kinetic_activities', activities);
+    syncToCloud('fitness', { profile, activities });
   }, [activities]);
 
   // Calculate daily stats based on today's activities

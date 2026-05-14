@@ -4,6 +4,7 @@ import { useOnboarding } from '../context/OnboardingContext';
 import { useGamification } from '../context/GamificationContext';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 
 interface SettingsItem {
   icon: string;
@@ -27,6 +28,7 @@ export default function Settings() {
   const { level, levelTitle, xp } = useGamification();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { logout } = useAuth();
 
   const settingsGroups: SettingsGroup[] = [
     {
@@ -146,7 +148,13 @@ export default function Settings() {
           <span className="material-symbols-outlined text-sm">restart_alt</span>
           Redo Onboarding
         </button>
-        <button onClick={() => showToast('Signed out successfully!', 'success')} className="text-[#FF4D4D] font-label font-bold uppercase tracking-[0.2em] text-[10px] hover:opacity-70 transition-opacity flex items-center justify-center gap-2 mx-auto bg-[#FF4D4D]/10 py-3 px-6 rounded-full border border-[#FF4D4D]/20">
+        <button 
+          onClick={async () => {
+            await logout();
+            showToast('Signed out successfully!', 'success');
+          }} 
+          className="text-[#FF4D4D] font-label font-bold uppercase tracking-[0.2em] text-[10px] hover:opacity-70 transition-opacity flex items-center justify-center gap-2 mx-auto bg-[#FF4D4D]/10 py-3 px-6 rounded-full border border-[#FF4D4D]/20"
+        >
           <span className="material-symbols-outlined text-sm">logout</span>
           Sign Out
         </button>

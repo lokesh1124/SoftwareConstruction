@@ -1,10 +1,20 @@
 // ─────────────────────────────────────────────────────────────
 // MyFitAI — Typed localStorage Wrapper
-// All keys are prefixed with 'myfitai_' to avoid collisions
-// with existing 'kinetic_' keys used by the original codebase.
+// All keys are prefixed with 'myfitai_{uid}_' to avoid collisions
+// and ensure complete isolation between different user accounts.
 // ─────────────────────────────────────────────────────────────
 
-const PREFIX = 'myfitai_';
+import { auth } from '../services/firebase';
+
+/**
+ * Helper to get the dynamically scoped prefix.
+ * We evaluate this lazily inside methods to ensure it grabs the latest UID
+ * after a login/logout event occurs.
+ */
+function getPrefix(): string {
+  const uid = auth.currentUser?.uid || 'guest';
+  return `myfitai_${uid}_`;
+}
 
 export const storage = {
   /**
@@ -12,12 +22,13 @@ export const storage = {
    * Returns null if the key doesn't exist or parsing fails.
    */
   get<T>(key: string): T | null {
+    const prefix = getPrefix();
     try {
-      const raw = localStorage.getItem(`${PREFIX}${key}`);
+      const raw = localStorage.getItem(`${prefix}${key}`);
       if (raw === null) return null;
       return JSON.parse(raw) as T;
     } catch {
-      console.warn(`[storage] Failed to parse key: ${PREFIX}${key}`);
+      console.warn(`[storage] Failed to parse key: ${prefix}${key}`);
       return null;
     }
   },
@@ -26,10 +37,11 @@ export const storage = {
    * Set a value in localStorage, serialized as JSON.
    */
   set<T>(key: string, value: T): void {
+    const prefix = getPrefix();
     try {
-      localStorage.setItem(`${PREFIX}${key}`, JSON.stringify(value));
+      localStorage.setItem(`${prefix}${key}`, JSON.stringify(value));
     } catch (e) {
-      console.error(`[storage] Failed to set key: ${PREFIX}${key}`, e);
+      console.error(`[storage] Failed to set key: ${prefix}${key}`, e);
     }
   },
 
@@ -37,25 +49,28 @@ export const storage = {
    * Remove a value from localStorage.
    */
   remove(key: string): void {
-    localStorage.removeItem(`${PREFIX}${key}`);
+    const prefix = getPrefix();
+    localStorage.removeItem(`${prefix}${key}`);
   },
 
   /**
    * Check if a key exists in localStorage.
    */
   has(key: string): boolean {
-    return localStorage.getItem(`${PREFIX}${key}`) !== null;
+    const prefix = getPrefix();
+    return localStorage.getItem(`${prefix}${key}`) !== null;
   },
 
   /**
-   * Get all keys with the myfitai_ prefix.
+   * Get all keys with the dynamically scoped prefix.
    */
   keys(): string[] {
+    const prefix = getPrefix();
     const result: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key?.startsWith(PREFIX)) {
-        result.push(key.slice(PREFIX.length));
+      if (key?.startsWith(prefix)) {
+        result.push(key.slice(prefix.length));
       }
     }
     return result;

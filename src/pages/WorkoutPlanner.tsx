@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useFitnessContext } from '../context/FitnessContext';
 import { quickPrompt, type UserContext } from '../services/gemini';
 import MuscleHeatmap from '../components/MuscleHeatmap';
+import { storage } from '../utils/storage';
 
 interface Exercise {
   id: string;
@@ -366,8 +367,8 @@ export default function WorkoutPlanner() {
   const { profile, logActivity } = useFitnessContext();
   
   const [customLib, setCustomLib] = useState<Omit<Exercise, 'id' | 'reps'>[]>(() => {
-    const saved = localStorage.getItem('kinetic_custom_library');
-    return saved ? JSON.parse(saved) : [];
+    const saved = storage.get<Omit<Exercise, 'id' | 'reps'>[]>('kinetic_custom_library');
+    return saved || [];
   });
 
   // Map database elements to ensure imageUrl resolution runs on startup
@@ -381,14 +382,8 @@ export default function WorkoutPlanner() {
   });
 
   const [workouts, setWorkouts] = useState<DailyWorkout[]>(() => {
-    const saved = localStorage.getItem('kinetic_custom_workouts');
-    if (saved) {
-      try { 
-        const parsed = JSON.parse(saved);
-        if (parsed && parsed.length > 0) return parsed;
-      } catch (e) { console.error(e); }
-    }
-    return [];
+    const saved = storage.get<DailyWorkout[]>('kinetic_custom_workouts');
+    return saved && saved.length > 0 ? saved : [];
   });
   
   const [mode, setMode] = useState<string>(workouts.length > 0 ? 'planner' : 'gateway');
@@ -463,11 +458,11 @@ export default function WorkoutPlanner() {
   const [expandedExIdx, setExpandedExIdx] = useState<number | null>(null);
 
   useEffect(() => {
-    localStorage.setItem('kinetic_custom_workouts', JSON.stringify(workouts));
+    storage.set('kinetic_custom_workouts', workouts);
   }, [workouts]);
 
   useEffect(() => {
-    localStorage.setItem('kinetic_custom_library', JSON.stringify(customLib));
+    storage.set('kinetic_custom_library', customLib);
   }, [customLib]);
 
   useEffect(() => {

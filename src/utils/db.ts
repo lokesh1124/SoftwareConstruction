@@ -1,14 +1,14 @@
 // ─────────────────────────────────────────────────────────────
 // MyFitAI — IndexedDB Wrapper (zero external dependencies)
-// Database: 'myfitai_db', version 1
 // Stores: workoutSessions, workoutTemplates, exercises, programs
 // ─────────────────────────────────────────────────────────────
 
 import type { WorkoutSession, WorkoutTemplate } from '../types/workout';
 import type { Exercise } from '../types/exercise';
 import type { Program } from '../types/program';
+import { auth } from '../services/firebase';
 
-const DB_NAME = 'myfitai_db';
+const BASE_DB_NAME = 'myfitai_db';
 const DB_VERSION = 1;
 
 const STORES = {
@@ -18,18 +18,23 @@ const STORES = {
   programs: 'programs',
 } as const;
 
-/** Cached database connection */
-let cachedDB: IDBDatabase | null = null;
+/** Cached database connection per user */
+const dbCache = new Map<string, IDBDatabase>();
 
 /**
  * Open (or create) the IndexedDB database.
- * Caches the connection for reuse.
+ * Caches the connection for reuse. Database name is scoped by user UID.
  */
 function getDB(): Promise<IDBDatabase> {
-  if (cachedDB) return Promise.resolve(cachedDB);
+  const uid = auth.currentUser?.uid || 'guest';
+  const dbName = `${BASE_DB_NAME}_${uid}`;
+
+  if (dbCache.has(dbName)) {
+    return Promise.resolve(dbCache.get(dbName)!);
+  }
 
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    const request = indexedDB.open(dbName, DB_VERSION);
 
     request.onupgradeneeded = () => {
       const database = request.result;
@@ -52,18 +57,19 @@ function getDB(): Promise<IDBDatabase> {
     };
 
     request.onsuccess = () => {
-      cachedDB = request.result;
+      const database = request.result;
+      dbCache.set(dbName, database);
 
       // Handle unexpected close (e.g., browser clears storage)
-      cachedDB.onclose = () => {
-        cachedDB = null;
+      database.onclose = () => {
+        dbCache.delete(dbName);
       };
 
-      resolve(cachedDB);
+      resolve(database);
     };
 
     request.onerror = () => {
-      console.error('[db] Failed to open IndexedDB:', request.error);
+      console.error(`[db] Failed to open IndexedDB ${dbName}:`, request.error);
       reject(request.error);
     };
   });

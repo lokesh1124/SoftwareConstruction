@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useFitnessContext } from '../context/FitnessContext';
+import { usePreferences } from '../context/PreferencesContext';
 import type { FitnessGoal } from '../context/FitnessContext';
 
 const STEPS = ['basics', 'body', 'goals', 'lifestyle', 'complete'] as const;
@@ -7,14 +8,36 @@ type Step = typeof STEPS[number];
 
 export default function OnboardingForm({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
   const { profile, updateProfile } = useFitnessContext();
+  const { weightUnit, heightUnit, updatePreferences } = usePreferences();
   const [step, setStep] = useState<Step>('basics');
-  const [formData, setFormData] = useState({
+  
+  const initialWeight = weightUnit === 'kg' ? Math.round(profile.weight / 2.20462 * 10) / 10 : profile.weight;
+  const initialTargetWeight = weightUnit === 'kg' ? Math.round(profile.targetWeight / 2.20462 * 10) / 10 : profile.targetWeight;
+  const initialHeight = heightUnit === 'cm' ? Math.round(profile.height * 2.54) : profile.height;
+
+  const [formData, setFormData] = useState<{
+    name: string;
+    age: number | '';
+    gender: string;
+    height: number | '';
+    weight: number | '';
+    targetWeight: number | '';
+    goal: string;
+    fitnessLevel: string;
+    activityLevel: string;
+    workoutPreference: string;
+    workoutDays: number;
+    dietPreference: string;
+    sleepQuality: string;
+    injuries: string;
+    motivationLevel: string;
+  }>({
     name: profile.name,
     age: profile.age,
     gender: profile.gender || 'Male',
-    height: profile.height,
-    weight: profile.weight,
-    targetWeight: profile.targetWeight,
+    height: initialHeight,
+    weight: initialWeight,
+    targetWeight: initialTargetWeight,
     goal: profile.goal,
     fitnessLevel: 'Intermediate',
     activityLevel: 'Moderate',
@@ -33,13 +56,18 @@ export default function OnboardingForm({ isOpen, onClose }: { isOpen: boolean, o
   };
 
   const handleSubmit = () => {
+    // Convert back to lbs/inches for internal storage if user selected metric
+    const finalWeight = weightUnit === 'kg' && typeof formData.weight === 'number' ? formData.weight * 2.20462 : Number(formData.weight);
+    const finalTargetWeight = weightUnit === 'kg' && typeof formData.targetWeight === 'number' ? formData.targetWeight * 2.20462 : Number(formData.targetWeight);
+    const finalHeight = heightUnit === 'cm' && typeof formData.height === 'number' ? formData.height / 2.54 : Number(formData.height);
+
     updateProfile({
       name: formData.name,
-      age: formData.age,
+      age: Number(formData.age) || profile.age,
       gender: formData.gender,
-      height: formData.height,
-      weight: formData.weight,
-      targetWeight: formData.targetWeight,
+      height: finalHeight,
+      weight: finalWeight,
+      targetWeight: finalTargetWeight,
       goal: formData.goal as FitnessGoal,
     });
     setStep('complete');
@@ -89,7 +117,7 @@ export default function OnboardingForm({ isOpen, onClose }: { isOpen: boolean, o
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelClass}>Age</label>
-                  <input type="number" value={formData.age} onChange={e => handleChange('age', Number(e.target.value))} className={inputClass} />
+                  <input type="number" value={formData.age} onChange={e => handleChange('age', e.target.value === '' ? '' : Number(e.target.value))} className={inputClass} />
                 </div>
                 <div>
                   <label className={labelClass}>Gender</label>
@@ -116,17 +144,27 @@ export default function OnboardingForm({ isOpen, onClose }: { isOpen: boolean, o
             <div className="space-y-5">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={labelClass}>Height (inches)</label>
-                  <input type="number" value={formData.height} onChange={e => handleChange('height', Number(e.target.value))} className={inputClass} />
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Height</label>
+                    <button onClick={() => updatePreferences({ heightUnit: heightUnit === 'in' ? 'cm' : 'in' })} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-2 py-0.5 rounded-md hover:bg-primary/20 transition-colors">
+                      <span className="material-symbols-outlined text-[12px]">sync_alt</span> {heightUnit}
+                    </button>
+                  </div>
+                  <input type="number" value={formData.height} onChange={e => handleChange('height', e.target.value === '' ? '' : Number(e.target.value))} className={inputClass} />
                 </div>
                 <div>
-                  <label className={labelClass}>Current Weight (lbs)</label>
-                  <input type="number" step="0.1" value={formData.weight} onChange={e => handleChange('weight', Number(e.target.value))} className={inputClass} />
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Current Weight</label>
+                    <button onClick={() => updatePreferences({ weightUnit: weightUnit === 'lbs' ? 'kg' : 'lbs' })} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-2 py-0.5 rounded-md hover:bg-primary/20 transition-colors">
+                      <span className="material-symbols-outlined text-[12px]">sync_alt</span> {weightUnit}
+                    </button>
+                  </div>
+                  <input type="number" step="0.1" value={formData.weight} onChange={e => handleChange('weight', e.target.value === '' ? '' : Number(e.target.value))} className={inputClass} />
                 </div>
               </div>
               <div>
-                <label className={labelClass}>Target Weight (lbs)</label>
-                <input type="number" step="0.1" value={formData.targetWeight} onChange={e => handleChange('targetWeight', Number(e.target.value))} className={inputClass} />
+                <label className={labelClass}>Target Weight ({weightUnit})</label>
+                <input type="number" step="0.1" value={formData.targetWeight} onChange={e => handleChange('targetWeight', e.target.value === '' ? '' : Number(e.target.value))} className={inputClass} />
               </div>
               <div className="p-5 bg-primary/5 border border-primary/20 rounded-2xl flex items-center justify-between">
                 <div>
@@ -134,7 +172,9 @@ export default function OnboardingForm({ isOpen, onClose }: { isOpen: boolean, o
                   <p className="text-[10px] text-on-surface-variant mt-0.5">{formData.weight > formData.targetWeight ? 'Fat loss phase' : 'Lean bulk phase'}</p>
                 </div>
                 <span className="font-headline font-black text-3xl text-primary">
-                  {formData.height > 0 ? ((703 * formData.weight) / (formData.height * formData.height)).toFixed(1) : '—'}
+                  {typeof formData.height === 'number' && typeof formData.weight === 'number' && formData.height > 0 
+                    ? ((703 * (weightUnit === 'kg' ? formData.weight * 2.20462 : formData.weight)) / Math.pow((heightUnit === 'cm' ? formData.height / 2.54 : formData.height), 2)).toFixed(1) 
+                    : '—'}
                 </span>
               </div>
               <div>

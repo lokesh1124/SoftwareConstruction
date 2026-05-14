@@ -1,11 +1,13 @@
 // ─────────────────────────────────────────────────────────────
 // MyFitAI — Google Gemini AI Service
 // Handles all communication with the Gemini API for AI Coach,
-// workout suggestions, and nutrition advice.
+// workout suggestions, and nutrition advice using the free Google AI Studio tier.
 // ─────────────────────────────────────────────────────────────
 
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
+
 const GEMINI_API_KEY = 'AIzaSyDe0DqZ_begUzzxefh5OJq7WKl_U3eaVgA';
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 export interface GeminiMessage {
   role: 'user' | 'model';
@@ -84,53 +86,36 @@ export async function sendToGemini(
 ): Promise<string> {
   const systemContext = buildSystemContext(userContext);
   
-  // Build the contents array with conversation history
-  const contents: GeminiMessage[] = [
-    // System context as the first "user" message
-    { role: 'user', parts: [{ text: systemContext + '\n\nRespond with a brief greeting acknowledging you are ready to help.' }] },
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-2.0-flash',
+    systemInstruction: systemContext,
+    generationConfig: {
+      temperature: 0.7,
+      topP: 0.9,
+      topK: 40,
+      maxOutputTokens: 512,
+    },
+    safetySettings: [
+      { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+      { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+      { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+      { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+    ],
+  });
+
+  const history = [
+    { role: 'user', parts: [{ text: 'Respond with a brief greeting acknowledging you are ready to help.' }] },
     { role: 'model', parts: [{ text: `Hey ${userContext.name}! 👋 Ready to help you crush your ${userContext.goal.toLowerCase()} goals. What's on your mind?` }] },
-    // Then the actual conversation
-    ...conversationHistory,
-    // The new user message
-    { role: 'user', parts: [{ text: userMessage }] },
+    ...conversationHistory.map(msg => ({
+      role: msg.role === 'user' ? 'user' : 'model',
+      parts: msg.parts
+    }))
   ];
 
   try {
-    const response = await fetch(GEMINI_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents,
-        generationConfig: {
-          temperature: 0.7,
-          topP: 0.9,
-          topK: 40,
-          maxOutputTokens: 512,
-        },
-        safetySettings: [
-          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
-          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
-          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
-          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      console.error('Gemini API error:', response.status, errorData);
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    
-    // Extract the text response
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) {
-      throw new Error('No response text from Gemini');
-    }
-    
-    return text.trim();
+    const chat = model.startChat({ history });
+    const result = await chat.sendMessage(userMessage);
+    return result.response.text();
   } catch (error) {
     console.error('Gemini request failed:', error);
     throw error;
@@ -145,5 +130,23 @@ export async function quickPrompt(
   prompt: string,
   userContext: UserContext
 ): Promise<string> {
-  return sendToGemini(prompt, [], userContext);
+  const systemContext = buildSystemContext(userContext);
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-2.0-flash',
+    systemInstruction: systemContext,
+    generationConfig: {
+      temperature: 0.7,
+      topP: 0.9,
+      topK: 40,
+      maxOutputTokens: 512,
+    }
+  });
+
+  try {
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+  } catch (error) {
+    console.error('Gemini request failed:', error);
+    throw error;
+  }
 }

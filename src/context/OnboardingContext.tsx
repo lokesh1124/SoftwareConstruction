@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import { syncToCloud } from '../services/cloudSync';
+import { storage } from '../utils/storage';
 
 export interface OnboardingData {
   name: string;
@@ -46,32 +49,45 @@ const DEFAULT_DATA: OnboardingData = {
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
 
 export function OnboardingProvider({ children }: { children: React.ReactNode }) {
-  const [isOnboarded, setIsOnboarded] = useState(() => {
-    return localStorage.getItem('myfitai_onboarded') === 'true';
+  const { cloudData } = useAuth();
+  
+  const [isOnboarded, setIsOnboarded] = useState<boolean>(() => {
+    return storage.get<boolean>('myfitai_onboarded') === true;
   });
+  
   const [onboardingData, setOnboardingData] = useState<OnboardingData>(() => {
-    const saved = localStorage.getItem('myfitai_onboarding_data');
-    return saved ? JSON.parse(saved) : DEFAULT_DATA;
+    const saved = storage.get<OnboardingData>('myfitai_onboarding_data');
+    return saved || DEFAULT_DATA;
   });
 
+  // Sync from cloud on load
   useEffect(() => {
-    localStorage.setItem('myfitai_onboarded', String(isOnboarded));
+    if (cloudData && cloudData.onboarding) {
+      setIsOnboarded(cloudData.onboarding.isOnboarded);
+      setOnboardingData(cloudData.onboarding.data);
+    }
+  }, [cloudData]);
+
+  useEffect(() => {
+    storage.set('myfitai_onboarded', isOnboarded);
   }, [isOnboarded]);
 
   useEffect(() => {
-    localStorage.setItem('myfitai_onboarding_data', JSON.stringify(onboardingData));
+    storage.set('myfitai_onboarding_data', onboardingData);
   }, [onboardingData]);
 
   const completeOnboarding = (data: OnboardingData) => {
     setOnboardingData(data);
     setIsOnboarded(true);
+    syncToCloud('onboarding', { isOnboarded: true, data });
   };
 
   const resetOnboarding = () => {
     setIsOnboarded(false);
     setOnboardingData(DEFAULT_DATA);
-    localStorage.removeItem('myfitai_onboarded');
-    localStorage.removeItem('myfitai_onboarding_data');
+    storage.remove('myfitai_onboarded');
+    storage.remove('myfitai_onboarding_data');
+    syncToCloud('onboarding', { isOnboarded: false, data: DEFAULT_DATA });
   };
 
   return (

@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────
 // MyFitAI — User Preferences Context
-// Persisted to localStorage. Controls units, timers, and UX prefs.
+// Persisted to storage wrapper. Controls units, timers, and UX prefs.
 // ─────────────────────────────────────────────────────────────
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
@@ -8,6 +8,7 @@ import { storage } from '../utils/storage';
 
 export interface Preferences {
   weightUnit: 'kg' | 'lbs';
+  heightUnit: 'in' | 'cm';
   timeFormat: '12h' | '24h';
   defaultRestTimer: number; // seconds
   defaultWorkoutDays: number;
@@ -21,6 +22,7 @@ interface PreferencesContextType extends Preferences {
 
 const DEFAULT_PREFERENCES: Preferences = {
   weightUnit: 'lbs',
+  heightUnit: 'in',
   timeFormat: '12h',
   defaultRestTimer: 90,
   defaultWorkoutDays: 4,

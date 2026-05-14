@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { storage } from '../utils/storage';
 
 type Theme = 'dark' | 'light';
 
@@ -11,12 +12,12 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem('kinetic_theme');
-    return (saved as Theme) || 'dark';
+    const saved = storage.get<Theme>('kinetic_theme');
+    return saved || 'dark';
   });
 
   useEffect(() => {
-    localStorage.setItem('kinetic_theme', theme);
+    storage.set('kinetic_theme', theme);
     document.documentElement.setAttribute('data-theme', theme);
     if (theme === 'light') {
       document.documentElement.classList.remove('dark');

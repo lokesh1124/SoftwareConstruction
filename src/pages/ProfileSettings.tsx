@@ -2,13 +2,21 @@ import { useState } from 'react';
 import { useFitnessContext } from '../context/FitnessContext';
 import OnboardingForm from '../components/OnboardingForm';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
+import { usePreferences } from '../context/PreferencesContext';
 
 export default function ProfileSettings() {
   const { profile } = useFitnessContext();
+  const { weightUnit, heightUnit } = usePreferences();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const { showToast } = useToast();
+  const { logout } = useAuth();
 
   const activeStreak = profile.goal === 'Fat Loss' ? 12 : 42; 
+
+  const displayWeight = weightUnit === 'kg' ? Math.round(profile.weight / 2.20462 * 10) / 10 : profile.weight;
+  const displayTargetWeight = weightUnit === 'kg' ? Math.round(profile.targetWeight / 2.20462 * 10) / 10 : profile.targetWeight;
+  const displayHeight = heightUnit === 'cm' ? Math.round(profile.height * 2.54) : profile.height;
 
   return (
     <main className="max-w-lg mx-auto px-5 pt-6 pb-32">
@@ -24,7 +32,7 @@ export default function ProfileSettings() {
         </div>
         <div>
           <h1 className="font-headline text-2xl font-bold tracking-tight">{profile.name}</h1>
-          <p className="text-on-surface-variant text-sm mt-1">{profile.goal} · {profile.weight} lbs · BMI {profile.bmi}</p>
+          <p className="text-on-surface-variant text-sm mt-1">{profile.goal} · {displayWeight} {weightUnit} · BMI {profile.bmi}</p>
         </div>
       </section>
 
@@ -36,7 +44,7 @@ export default function ProfileSettings() {
         </div>
         <div className="bg-[var(--color-surface-container)] rounded-2xl p-4">
           <p className="text-on-surface-variant text-xs font-medium mb-1">Target Weight</p>
-          <p className="font-headline font-bold text-base">{profile.targetWeight} lbs</p>
+          <p className="font-headline font-bold text-base">{displayTargetWeight} {weightUnit}</p>
         </div>
       </section>
 
@@ -58,7 +66,7 @@ export default function ProfileSettings() {
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-[var(--color-surface-container)] rounded-2xl p-4">
               <p className="text-on-surface-variant text-xs font-medium mb-1">Deadlift PR</p>
-              <p className="font-headline font-bold text-xl">315 <span className="text-xs text-on-surface-variant font-normal">lbs</span></p>
+              <p className="font-headline font-bold text-xl">{weightUnit === 'kg' ? Math.round(315 / 2.20462) : 315} <span className="text-xs text-on-surface-variant font-normal">{weightUnit}</span></p>
             </div>
             <div className="bg-[var(--color-surface-container)] rounded-2xl p-4">
               <p className="text-on-surface-variant text-xs font-medium mb-1">5K Time</p>
@@ -90,7 +98,7 @@ export default function ProfileSettings() {
               <span className="material-symbols-outlined text-on-surface-variant text-xl">person_edit</span>
               <div>
                 <p className="font-semibold text-sm">Edit Profile</p>
-                <p className="text-on-surface-variant text-xs mt-0.5">Height: {profile.height}in · Target: {profile.targetWeight}lbs</p>
+                <p className="text-on-surface-variant text-xs mt-0.5">Height: {displayHeight}{heightUnit} · Target: {displayTargetWeight}{weightUnit}</p>
               </div>
             </div>
             <span className="material-symbols-outlined text-on-surface-variant text-base">chevron_right</span>
@@ -109,7 +117,13 @@ export default function ProfileSettings() {
         </div>
         
         <div className="mt-10 text-center space-y-4">
-          <button onClick={() => showToast('Signed out successfully!', 'success')} className="text-[#FF4D4D] text-sm font-semibold hover:opacity-70 transition-opacity">
+          <button 
+            onClick={async () => { 
+              await logout();
+              showToast('Signed out successfully!', 'success');
+            }} 
+            className="text-[#FF4D4D] text-sm font-semibold hover:opacity-70 transition-opacity"
+          >
             Sign Out
           </button>
           <p className="text-on-surface-variant/40 text-[10px]">MyFitAI v2.1.0</p>
