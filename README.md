@@ -74,7 +74,7 @@ MyFitAI/
 ### 1️⃣ Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/MyFitAI.git
+git clone https://github.com/najibcode/MyFitAI.git
 ```
 
 ### 2️⃣ Navigate to Project Folder
