@@ -27,6 +27,7 @@ export default function NutritionPlanner() {
   // Food browser state
   const [selectedFood, setSelectedFood] = useState<NutritionFood | null>(null);
   const [foodGrams, setFoodGrams] = useState<number>(100);
+  const [recipeGrams, setRecipeGrams] = useState<number>(250);
   const [foodSearch, setFoodSearch] = useState('');
   const [foodCatFilter, setFoodCatFilter] = useState<string>('All');
 
@@ -52,9 +53,18 @@ export default function NutritionPlanner() {
   };
 
   const handleLogRecipe = (dish: IndianDish, type: MealType) => {
-    logMeal({ name: dish.name, mealType: type, calories: dish.calories, protein: dish.protein, carbs: dish.carbs, fat: dish.fat });
-    showToast(`${dish.name} logged as ${type}! (+${dish.calories} kcal)`, 'success');
+    const mult = recipeGrams / dish.servingSize;
+    logMeal({ 
+      name: `${dish.name} (${recipeGrams}g)`, 
+      mealType: type, 
+      calories: Math.round(dish.calories * mult), 
+      protein: Math.round(dish.protein * mult), 
+      carbs: Math.round(dish.carbs * mult), 
+      fat: Math.round(dish.fat * mult) 
+    });
+    showToast(`${dish.name} logged as ${type}! (+${Math.round(dish.calories * mult)} kcal)`, 'success');
     setLogMealType(null);
+    setSelectedDish(null);
   };
 
   const handleAddSupplement = () => {
@@ -517,7 +527,7 @@ export default function NutritionPlanner() {
         <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">Showing {filteredDishes.length} dishes</p>
         <div className="flex flex-col gap-5">
           {filteredDishes.map(dish=>(
-            <div key={dish.id} onClick={()=>setSelectedDish(dish)} className="bg-[var(--color-surface-container)] rounded-[2rem] overflow-hidden group hover:bg-[var(--color-surface-container-high)] transition-all cursor-pointer hover:shadow-[0_20px_60px_rgba(0,0,0,0.3)] hover:-translate-y-1 duration-300">
+            <div key={dish.id} onClick={()=>{setSelectedDish(dish);setRecipeGrams(dish.servingSize)}} className="bg-[var(--color-surface-container)] rounded-[2rem] overflow-hidden group hover:bg-[var(--color-surface-container-high)] transition-all cursor-pointer hover:shadow-[0_20px_60px_rgba(0,0,0,0.3)] hover:-translate-y-1 duration-300">
               <div className="h-44 relative overflow-hidden">
                 <img className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={dish.name} src={dish.image} loading="lazy" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -562,8 +572,32 @@ export default function NutritionPlanner() {
               </div>
             </div>
             <div className="p-6 space-y-5">
+              {/* Amount in Grams */}
+              <div>
+                <p className="text-[9px] text-on-surface-variant uppercase tracking-widest font-bold mb-2">Amount (Grams)</p>
+                <div className="flex items-center gap-3 bg-[var(--color-surface-container)] rounded-xl p-3 border border-white/5">
+                  <input 
+                    type="number" 
+                    inputMode="numeric"
+                    value={recipeGrams || ''} 
+                    onChange={e => setRecipeGrams(Math.max(0, parseInt(e.target.value) || 0))} 
+                    className="flex-1 bg-transparent font-headline font-bold text-2xl text-center outline-none"
+                  />
+                  <span className="text-sm text-on-surface-variant font-bold pr-4">g</span>
+                </div>
+                <p className="text-center text-[10px] text-on-surface-variant mt-2">
+                  Standard serving: {selectedDish.servingSize}g
+                </p>
+              </div>
+
               <div className="grid grid-cols-5 gap-2">
-                {[{l:'Calories',v:selectedDish.calories,u:'kcal',c:'#FF7A00'},{l:'Protein',v:selectedDish.protein,u:'g',c:'#FF4D4D'},{l:'Carbs',v:selectedDish.carbs,u:'g',c:'#6FFB85'},{l:'Fat',v:selectedDish.fat,u:'g',c:'#fab0ff'},{l:'Fiber',v:selectedDish.fiber,u:'g',c:'#ff9800'}].map((s,i)=>(
+                {[
+                  {l:'Calories',v:Math.round(selectedDish.calories * (recipeGrams / selectedDish.servingSize)),u:'kcal',c:'#FF7A00'},
+                  {l:'Protein',v:Math.round(selectedDish.protein * (recipeGrams / selectedDish.servingSize)),u:'g',c:'#FF4D4D'},
+                  {l:'Carbs',v:Math.round(selectedDish.carbs * (recipeGrams / selectedDish.servingSize)),u:'g',c:'#6FFB85'},
+                  {l:'Fat',v:Math.round(selectedDish.fat * (recipeGrams / selectedDish.servingSize)),u:'g',c:'#fab0ff'},
+                  {l:'Fiber',v:Math.round(selectedDish.fiber * (recipeGrams / selectedDish.servingSize)),u:'g',c:'#ff9800'}
+                ].map((s,i)=>(
                   <div key={i} className="bg-[var(--color-surface-container)] rounded-xl p-2 text-center border border-white/5">
                     <p className="text-[7px] uppercase tracking-wider font-bold mb-0.5" style={{color:s.c}}>{s.l}</p>
                     <p className="font-headline font-black text-base leading-none">{s.v}<span className="text-[8px] text-on-surface-variant ml-0.5">{s.u}</span></p>
