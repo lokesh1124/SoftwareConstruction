@@ -75,6 +75,8 @@ export interface StrengthEntry {
   weight: number; // in lbs
   reps: number;
   date: string; // ISO date YYYY-MM-DD
+  rpe?: string;
+  setType?: string;
 }
 
 // ── Body Measurements ──
@@ -127,7 +129,7 @@ interface FitnessContextType {
   clearCheckedGroceries: () => void;
   // Strength tracking
   strengthHistory: StrengthEntry[];
-  logStrength: (exercise: string, weight: number, reps: number) => void;
+  logStrength: (exercise: string, weight: number, reps: number, rpe?: string, setType?: string) => void;
   deleteStrength: (id: string) => void;
   // Body measurements
   bodyMeasurementHistory: BodyMeasurementEntry[];
@@ -441,13 +443,15 @@ export function FitnessProvider({ children }: { children: React.ReactNode }) {
 
   // ── Strength Tracking ──
 
-  const logStrength = (exercise: string, weight: number, reps: number) => {
+  const logStrength = (exercise: string, weight: number, reps: number, rpe?: string, setType?: string) => {
     const entry: StrengthEntry = {
       id: crypto.randomUUID(),
       exercise,
       weight,
       reps,
       date: getTodayDateString(),
+      rpe,
+      setType,
     };
     setStrengthHistory(prev => [entry, ...prev]);
   };
