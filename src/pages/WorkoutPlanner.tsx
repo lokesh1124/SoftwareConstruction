@@ -364,7 +364,30 @@ const generateSplitRoutine = (splitId: string, frequency: number): DailyWorkout[
 
 
 export default function WorkoutPlanner() {
-  const { profile, logActivity } = useFitnessContext();
+  const { profile, logActivity, strengthHistory, logStrength } = useFitnessContext();
+
+  // Helper to get last session's sets for an exercise (excluding today's date)
+  const getLastSessionSets = (exerciseName: string) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const exerciseHistory = strengthHistory.filter(
+      s => s.exercise.toLowerCase() === exerciseName.toLowerCase() && s.date !== todayStr
+    );
+    if (exerciseHistory.length === 0) return [];
+    
+    // Find the most recent date in the history (which is sorted latest first)
+    const lastDate = exerciseHistory[0].date;
+    return [...exerciseHistory]
+      .filter(s => s.date === lastDate)
+      .reverse(); // reverse to maintain original chronological set order
+  };
+
+  const formatLastSession = (exName: string) => {
+    const lastSets = getLastSessionSets(exName);
+    if (lastSets.length === 0) return null;
+    
+    const setsStr = lastSets.map(s => `${s.weight} lbs x ${s.reps}${s.rpe ? ` @RPE${s.rpe}` : ''}`).join(', ');
+    return `Last: ${setsStr}`;
+  };
   
   const [customLib, setCustomLib] = useState<Omit<Exercise, 'id' | 'reps'>[]>(() => {
     const saved = storage.get<Omit<Exercise, 'id' | 'reps'>[]>('kinetic_custom_library');
@@ -669,6 +692,25 @@ Rules:
 
   const finishWorkout = () => {
     logActivity({ type: 'Workout', value: Math.max(1, Math.round(elapsed / 60)), caloriesBurned: activeWorkout.kcal });
+    
+    // Log individual completed strength sets to strengthHistory
+    if (activeWorkout && !activeWorkout.isRest) {
+      activeWorkout.exercises.forEach((ex, i) => {
+        const sets = liveSetsData[i] || [];
+        sets.forEach(set => {
+          if (set.completed && set.weight && set.reps) {
+            logStrength(
+              ex.name,
+              parseFloat(set.weight) || 0,
+              parseInt(set.reps) || 0,
+              set.rpe || undefined,
+              set.setType || undefined
+            );
+          }
+        });
+      });
+    }
+
     setMode('planner');
     setElapsed(0);
     setLiveSetsData({});
@@ -994,6 +1036,12 @@ Rules:
                       <p className={`font-bold transition-colors group-hover:text-primary ${isExerciseCompleted ? 'text-primary/70 line-through' : 'text-on-surface'}`}>{ex.name}</p>
                       <p className="text-[10px] text-on-surface-variant font-label uppercase tracking-widest mt-1 flex items-center gap-1 mb-2">Sets: {ex.reps} <span className="material-symbols-outlined text-[10px] group-hover:text-primary">info</span></p>
                       <p className={`text-xs leading-relaxed transition-opacity ${isExerciseCompleted ? 'opacity-30' : 'text-white/80'}`}>{ex.description || 'Track your sets perfectly.'}</p>
+                      {formatLastSession(ex.name) && !isExerciseCompleted && (
+                        <p className="text-[11px] text-[#6FFB85] font-semibold mt-2 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px]">history</span>
+                          {formatLastSession(ex.name)}
+                        </p>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -1027,52 +1075,75 @@ Rules:
                       <span className="w-10"></span> {/* Spacer for checkmark */}
                   </div>
 
-                  {currentExerciseSets.length > 0 && currentExerciseSets.map((set, setIdx) => (
-                    <div key={setIdx} className={`flex items-center gap-2 p-2 rounded-xl transition-colors ${set.completed ? 'bg-primary/20 opacity-60' : 'bg-black/20'} group/set`}>
-                       <button onClick={() => {
-                           const types: SetType[] = ['N', 'D', 'F', 'W'];
-                           const idx = types.indexOf(set.setType);
-                           const newSets = [...liveSetsData[i]];
-                           newSets[setIdx].setType = types[(idx + 1) % types.length];
-                           setLiveSetsData({...liveSetsData, [i]: newSets});
-                       }} className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-black transition-colors disabled:opacity-50 ${set.setType === 'N' ? 'bg-white/5 text-white/50' : set.setType === 'D' ? 'bg-[#ff9800]/20 text-[#ff9800]' : set.setType === 'F' ? 'bg-[#ff0000]/20 text-[#ff0000]' : 'bg-[#00bcd4]/20 text-[#00bcd4]'}`} disabled={set.completed}>
-                         {set.setType}
-                       </button>
-                       <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-widest w-4 text-center">{setIdx + 1}</span>
-                       <div className="flex-1 flex gap-2">
-                         <div className="relative flex-1">
-                           <input type="text" placeholder="-" disabled={set.completed} value={set.weight} onChange={(e) => {
-                             const newSets = [...liveSetsData[i]];
-                             newSets[setIdx].weight = e.target.value;
-                             setLiveSetsData({...liveSetsData, [i]: newSets});
-                           }} className={`w-full ${set.completed ? 'bg-transparent text-primary/70' : 'bg-[var(--color-surface)]'} border border-white/5 rounded-lg py-2.5 px-2 text-xs text-white outline-none focus:border-primary/50 text-center font-bold disabled:border-transparent placeholder:text-white/20`} />
-                         </div>
-                         <div className="relative flex-1">
-                           <input type="text" placeholder="-" disabled={set.completed} value={set.reps} onChange={(e) => {
-                             const newSets = [...liveSetsData[i]];
-                             newSets[setIdx].reps = e.target.value;
-                             setLiveSetsData({...liveSetsData, [i]: newSets});
-                           }} className={`w-full ${set.completed ? 'bg-transparent text-primary/70' : 'bg-[var(--color-surface)]'} border border-white/5 rounded-lg py-2.5 px-2 text-xs text-white outline-none focus:border-primary/50 text-center font-bold disabled:border-transparent placeholder:text-white/20`} />
-                         </div>
-                         <div className="relative flex-1">
-                           <input type="text" placeholder="RPE" disabled={set.completed} value={set.rpe} onChange={(e) => {
-                             const newSets = [...liveSetsData[i]];
-                             newSets[setIdx].rpe = e.target.value;
-                             setLiveSetsData({...liveSetsData, [i]: newSets});
-                           }} className={`w-full ${set.completed ? 'bg-transparent text-primary/70' : 'bg-[var(--color-surface)]'} border border-white/5 rounded-lg py-2.5 px-2 text-xs text-white outline-none focus:border-primary/50 text-center font-bold disabled:border-transparent placeholder:text-white/20`} />
-                         </div>
-                       </div>
-                       <button onClick={() => {
-                           const newSets = [...liveSetsData[i]];
-                           const togglingOn = !newSets[setIdx].completed;
-                           newSets[setIdx].completed = togglingOn;
-                           setLiveSetsData({...liveSetsData, [i]: newSets});
-                           if (togglingOn && !isExerciseCompleted) setRestTimer(90);
-                       }} className={`w-10 h-10 flex-shrink-0 rounded-lg flex items-center justify-center transition-colors border ${set.completed ? 'bg-primary border-primary text-black shadow-[0_0_15px_rgba(255,122,0,0.4)]' : 'bg-white/5 border-white/10 hover:bg-white/10 text-transparent'}`}>
-                         <span className="material-symbols-outlined text-sm font-bold">check</span>
-                       </button>
-                    </div>
-                  ))}
+                  {currentExerciseSets.length > 0 && currentExerciseSets.map((set, setIdx) => {
+                    const lastSets = getLastSessionSets(ex.name);
+                    const lastSetForIdx = lastSets.length > 0 ? (lastSets[setIdx] || lastSets[lastSets.length - 1]) : null;
+                    return (
+                      <div key={setIdx} className="flex flex-col gap-1 w-full">
+                        <div className={`flex items-center gap-2 p-2 rounded-xl transition-colors ${set.completed ? 'bg-primary/20 opacity-60' : 'bg-black/20'} group/set`}>
+                           <button onClick={() => {
+                               const types: SetType[] = ['N', 'D', 'F', 'W'];
+                               const idx = types.indexOf(set.setType);
+                               const newSets = [...liveSetsData[i]];
+                               newSets[setIdx].setType = types[(idx + 1) % types.length];
+                               setLiveSetsData({...liveSetsData, [i]: newSets});
+                           }} className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-black transition-colors disabled:opacity-50 ${set.setType === 'N' ? 'bg-white/5 text-white/50' : set.setType === 'D' ? 'bg-[#ff9800]/20 text-[#ff9800]' : set.setType === 'F' ? 'bg-[#ff0000]/20 text-[#ff0000]' : 'bg-[#00bcd4]/20 text-[#00bcd4]'}`} disabled={set.completed}>
+                             {set.setType}
+                           </button>
+                           <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-widest w-4 text-center">{setIdx + 1}</span>
+                           <div className="flex-1 flex gap-2">
+                             <div className="relative flex-1">
+                               <input type="text" placeholder="-" disabled={set.completed} value={set.weight} onChange={(e) => {
+                                 const newSets = [...liveSetsData[i]];
+                                 newSets[setIdx].weight = e.target.value;
+                                 setLiveSetsData({...liveSetsData, [i]: newSets});
+                               }} className={`w-full ${set.completed ? 'bg-transparent text-primary/70' : 'bg-[var(--color-surface)]'} border border-white/5 rounded-lg py-2.5 px-2 text-xs text-white outline-none focus:border-primary/50 text-center font-bold disabled:border-transparent placeholder:text-white/20`} />
+                             </div>
+                             <div className="relative flex-1">
+                               <input type="text" placeholder="-" disabled={set.completed} value={set.reps} onChange={(e) => {
+                                 const newSets = [...liveSetsData[i]];
+                                 newSets[setIdx].reps = e.target.value;
+                                 setLiveSetsData({...liveSetsData, [i]: newSets});
+                               }} className={`w-full ${set.completed ? 'bg-transparent text-primary/70' : 'bg-[var(--color-surface)]'} border border-white/5 rounded-lg py-2.5 px-2 text-xs text-white outline-none focus:border-primary/50 text-center font-bold disabled:border-transparent placeholder:text-white/20`} />
+                             </div>
+                             <div className="relative flex-1">
+                               <input type="text" placeholder="RPE" disabled={set.completed} value={set.rpe} onChange={(e) => {
+                                 const newSets = [...liveSetsData[i]];
+                                 newSets[setIdx].rpe = e.target.value;
+                                 setLiveSetsData({...liveSetsData, [i]: newSets});
+                               }} className={`w-full ${set.completed ? 'bg-transparent text-primary/70' : 'bg-[var(--color-surface)]'} border border-white/5 rounded-lg py-2.5 px-2 text-xs text-white outline-none focus:border-primary/50 text-center font-bold disabled:border-transparent placeholder:text-white/20`} />
+                             </div>
+                           </div>
+                           <button onClick={() => {
+                               const newSets = [...liveSetsData[i]];
+                               const togglingOn = !newSets[setIdx].completed;
+                               newSets[setIdx].completed = togglingOn;
+                               setLiveSetsData({...liveSetsData, [i]: newSets});
+                               if (togglingOn && !isExerciseCompleted) setRestTimer(90);
+                           }} className={`w-10 h-10 flex-shrink-0 rounded-lg flex items-center justify-center transition-colors border ${set.completed ? 'bg-primary border-primary text-black shadow-[0_0_15px_rgba(255,122,0,0.4)]' : 'bg-white/5 border-white/10 hover:bg-white/10 text-transparent'}`}>
+                             <span className="material-symbols-outlined text-sm font-bold">check</span>
+                           </button>
+                        </div>
+                        {lastSetForIdx && !set.completed && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newSets = [...liveSetsData[i]];
+                              newSets[setIdx].weight = String(lastSetForIdx.weight);
+                              newSets[setIdx].reps = String(lastSetForIdx.reps);
+                              if (lastSetForIdx.rpe) newSets[setIdx].rpe = String(lastSetForIdx.rpe);
+                              if (lastSetForIdx.setType) newSets[setIdx].setType = lastSetForIdx.setType as SetType;
+                              setLiveSetsData({...liveSetsData, [i]: newSets});
+                            }}
+                            className="flex items-center gap-1 px-10 text-[10px] text-primary/75 hover:text-primary transition-colors text-left self-start py-0.5 cursor-pointer"
+                          >
+                            <span className="material-symbols-outlined text-[12px]">history</span>
+                            <span>Last Set {setIdx + 1}: {lastSetForIdx.weight} lbs x {lastSetForIdx.reps} {lastSetForIdx.rpe ? `@RPE${lastSetForIdx.rpe}` : ''} {lastSetForIdx.setType && lastSetForIdx.setType !== 'N' ? `[${lastSetForIdx.setType}]` : ''} <span className="text-white/30 text-[9px]">(click to fill)</span></span>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )})}
@@ -1405,6 +1476,24 @@ Rules:
                                 <span key={mi} className="px-2 py-0.5 bg-primary/8 border border-primary/15 rounded-full text-[9px] text-primary font-semibold">
                                   {m}
                                 </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Last Performance */}
+                        {getLastSessionSets(ex.name).length > 0 && (
+                          <div className="bg-[#6FFB85]/5 border border-[#6FFB85]/15 rounded-xl p-3">
+                            <div className="flex items-center gap-2 mb-2 text-[#6FFB85]">
+                              <span className="material-symbols-outlined text-[15px]">history</span>
+                              <span className="text-[9px] uppercase font-bold tracking-[0.15em]">Last Session Performance ({getLastSessionSets(ex.name)[0].date})</span>
+                            </div>
+                            <div className="space-y-1">
+                              {getLastSessionSets(ex.name).map((set, sIdx) => (
+                                <div key={sIdx} className="flex justify-between items-center text-[11px] text-on-surface-variant">
+                                  <span>Set {sIdx + 1} {set.setType && set.setType !== 'N' ? `[${set.setType}]` : ''}</span>
+                                  <span className="font-mono text-white/90">{set.weight} lbs x {set.reps} {set.rpe ? `@RPE ${set.rpe}` : ''}</span>
+                                </div>
                               ))}
                             </div>
                           </div>
